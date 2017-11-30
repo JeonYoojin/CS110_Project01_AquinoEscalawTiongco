@@ -12,18 +12,18 @@ public class BTree {
     //Method to search for given Node where we want to Insert a Key value
     //Returns a Node with Key values in it
     public BNode search(BNode root, int key){ 
-        int i = 0;
-        while(i < root.count && key > root.key[i]){ //Increment in Node while Key > Current Value
-            i++;
+        int dex = 0;
+        while(dex < root.count && key > root.key[dex]){ //Increment in Node while Key > Current Value
+            dex++;
         }
-        if(i <= root.count && key == root.key[i]){ //Return Node if Key is in Node
+        if(dex <= root.count && key == root.key[dex]){ //Return Node if Key is in Node
             return root;
         }
         if(root.leaf){
             return null;
         }
         else{
-            return search(root.getChild(i), key);
+            return search(root.getChild(dex), key);
         }
     }
     
@@ -57,5 +57,32 @@ public class BTree {
         x.count++; //Increases key count in X
     }
     
+    public void insertNF(BNode root, int key){ //Insert method when Node is not Full
+        int cnt = x.count; //Counts # of keys in Node X
+        if(x.leaf){
+            while(cnt >= 1 && key < x.key[cnt - 1]){ //Looks for a spot where program can put a key
+                x.key[cnt] = x.key[cnt - 1]; //Shifts Values to make room
+                cnt--;
+            }
+            x.key[cnt] = key; //Assigns value to Key
+            x.count++; //Increments # of Keys in this Node
+        }
+        else {
+            int j = 0;
+            while(j < x.count && key > x.key[j]){ //Searches spot for recursive insert
+                j++;   
+            }
+            if(x.child[j].count == (2*order) - 1){
+                split(x, j, x.child[j]); // Splits on X's ith child
+                if(key > x.key[j]){
+                    j++;   
+                }
+            }
+            insertNF(x.child[j], key); //Recursive insert
+        }
+    }
     
+    public void insertGen(BTree branch, int key){
+        
+    }
 }
