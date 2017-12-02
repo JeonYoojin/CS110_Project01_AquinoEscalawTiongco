@@ -5,19 +5,11 @@ public class BTree {
     BNode root; //B Tree Root Node
     long splitCnt; //data.bt
     long insertCnt; //Data.values
-    int keyPntr; int childPntr;
     
     public BTree(int order){ //BTree Constructor
         this.order = order;
         root = new BNode(order,null);
-        splitCnt = 0; insertCnt = 0;
-        keyPntr = order/2;
-        if(order % 2 == 0){
-            childPntr = order/2;   
-        }
-        else{
-            childPntr = order / 2 + 1;   
-        }
+        //splitCnt = -1; insertCnt = -1;
     }
     
     //Method to search for given Node where we want to Insert a Key value
@@ -39,7 +31,13 @@ public class BTree {
     }
     
     public void split(BNode x, int i, BNode y){
-        BNode z = new BNode(order, null); //additional Node for split
+        //Split when Node overflows i.e. node.count == order
+        if(order % 2 = != 0){
+            BNode z = new BNode(order, null);
+            z.leaf = y.leaf; //Both are children of Node x
+            z.count = order/2;
+        }
+        /*BNode z = new BNode(order, null); //additional Node for split
         z.leaf = y.leaf;//Sets leaf boolean as the same as y
         z.count = order - 1; //Updated size
         for(int j = 0; j < order - 1; j++){
@@ -65,12 +63,13 @@ public class BTree {
         for(int j = 0; j < order - 1; j++){
             y.key[j + order] = 0;// "Deletes" old values
         }
-        x.count++; //Increases key count in X
+        x.count++; //Increases key count in X*/
     }
     
-    public void insertNF(BNode root, int key){ //Insert method when Node is not Full
+    public void insert(BNode root, int key){ //Insert method when Node is not Full
         int cnt = x.count; //Counts # of keys in Node X
-        insertCnt++;
+        System.out.println("ROOT KEY: " + root.key[0]);
+        //insertCnt++;
         if(x.leaf){
             while(cnt >= 1 && key < x.key[cnt - 1]){ //Looks for a spot where program can put a key
                 x.key[cnt] = x.key[cnt - 1]; //Shifts Values to make room
@@ -84,12 +83,10 @@ public class BTree {
             while(j < x.count && key > x.key[j]){ //Searches spot for recursive insert
                 j++;   
             }
-            dex++;
-            if(x.child[j].count == order - 1){
+            insert(x.child[j], key);
+            if(x.child[j].count == order){
+                //System.out.println("NODE IS FULL. MUST SPLIT.");
                 split(x, j, x.child[j]); // Splits on X's ith child
-                if(key > x.key[j]){
-                    j++;   
-                }
             }
             insert(x.child[j], key); //Recursive insert
         }
