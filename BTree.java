@@ -33,7 +33,7 @@ public class BTree {
         }
     }
     
-    public void split(BNode x, int i, BNode y){
+    public void split(BNode x, int i, BNode y){ //Done when a Node overflows
         BNode z = new BNode(order, null); //additional Node for split
         z.leaf = y.leaf;//Sets leaf boolean as the same as y
         z.count = order - 1; //Updated size
@@ -89,7 +89,7 @@ public class BTree {
         }
     }
     
-    public void insertDF(BTree ents, int key){
+    public void insertDF(BTree ents, int key){ //Default Insert method
         BNode root = ents.root; //Finds the Node to be inserted, and starts at the Root Node
         if(root.count == order - 1){ //Checks if Node is full
             BNode axis = new BNode(order, null); //New Node   
@@ -111,7 +111,7 @@ public class BTree {
             System.out.println(node.getKey(i) + " "); //Prints out Root Node  
         }
         if(!node.leaf){
-            for(int j = 0; j <= node.count; j++){
+            for(int j = 0; j <= node.count; j++){ //Pre-order Traversal of B-Tree
                 if(node.getChild(j) != null){
                     System.out.println(node.getChild(j));   
                 }
@@ -123,7 +123,7 @@ public class BTree {
         BNode pholder = new BNode(order, null);
         pholder = search(ents.root, key);
         if(pholder == null){
-            System.out.println("Specified Key does not exist.");
+            System.out.println("Specified Key not found.");
         }
         else{
             print(pholder);   
