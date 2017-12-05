@@ -7,8 +7,6 @@ public class BNode {
     boolean leaf; //Boolean to check whether Node is leaf or not
     BNode parent; //Parent of current Node
     
-    public BNode(){} //default constructors for new Nodes
-    
     public BNode(int order, BNode parent){
         this.order = order; //Assigns order/size
         this.parent = parent; //Assigns parent
