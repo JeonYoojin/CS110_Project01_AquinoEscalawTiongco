@@ -30,7 +30,7 @@ public class Values{
     
     public String select(int n) throws IOException{ //Returns the String of a corresponding Record #
         access.seek(2 + n*256);
-        int length = raf.readShort();
+        int length = access.readShort();
         byte[] byteArray = new byte[length];
         access.read(byteArray);
         return new String(byteArray, "UTF8");

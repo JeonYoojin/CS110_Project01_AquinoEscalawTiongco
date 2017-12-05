@@ -64,28 +64,28 @@ public class BTree {
     }
     
     public void insertNF(BNode root, int key){ //Insert method when Node is not Full
-        int cnt = x.count; //Counts # of keys in Node X
+        int cnt = root.count; //Counts # of keys in Node X
         System.out.println("ROOT KEY: " + root.key[0]);
         //insertCnt++;
-        if(x.leaf){
-            while(cnt >= 1 && key < x.key[cnt - 1]){ //Looks for a spot where program can put a key
-                x.key[cnt] = x.key[cnt - 1]; //Shifts Values to make room
+        if(root.leaf){
+            while(cnt >= 1 && key < root.key[cnt - 1]){ //Looks for a spot where program can put a key
+                root.key[cnt] = root.key[cnt - 1]; //Shifts Values to make room
                 cnt--;
             }
-            x.key[cnt] = key; //Assigns value to Key
-            x.count++; //Increments # of Keys in this Node
+            root.key[cnt] = key; //Assigns value to Key
+            root.count++; //Increments # of Keys in this Node
         }
         else {
             int j = 0;
-            while(j < x.count && key > x.key[j]){ //Searches spot for recursive insert
+            while(j < root.count && key > root.key[j]){ //Searches spot for recursive insert
                 j++;   
             }
-            insertNF(x.child[j], key);
-            if(x.child[j].count == order){
+            insertNF(root.child[j], key);
+            if(root.child[j].count == order){
                 //System.out.println("NODE IS FULL. MUST SPLIT.");
-                split(x, j, x.child[j]); // Splits on X's ith child
+                split(root, j, root.child[j]); // Splits on X's ith child
             }
-            insertNF(x.child[j], key); //Recursive insert
+            insertNF(root.child[j], key); //Recursive insert
         }
     }
     
