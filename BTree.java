@@ -1,4 +1,7 @@
-import java.io.*;
+import java.io.*; //I put this out of habit pls forgib
+
+//GGWP mga repa I have no idea what I'm doing how do you do Print method
+//UPDATE: I have finished print method, it's so jackass
 
 public class BTree {
     static int order; //order of BTree
