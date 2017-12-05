@@ -31,13 +31,7 @@ public class BTree {
     }
     
     public void split(BNode x, int i, BNode y){
-        //Split when Node overflows i.e. node.count == order
-        if(order % 2 = != 0){
-            BNode z = new BNode(order, null);
-            z.leaf = y.leaf; //Both are children of Node x
-            z.count = order/2;
-        }
-        /*BNode z = new BNode(order, null); //additional Node for split
+        BNode z = new BNode(order, null); //additional Node for split
         z.leaf = y.leaf;//Sets leaf boolean as the same as y
         z.count = order - 1; //Updated size
         for(int j = 0; j < order - 1; j++){
@@ -63,10 +57,10 @@ public class BTree {
         for(int j = 0; j < order - 1; j++){
             y.key[j + order] = 0;// "Deletes" old values
         }
-        x.count++; //Increases key count in X*/
+        x.count++; //Increases key count in X
     }
     
-    public void insert(BNode root, int key){ //Insert method when Node is not Full
+    public void insertNF(BNode root, int key){ //Insert method when Node is not Full
         int cnt = x.count; //Counts # of keys in Node X
         System.out.println("ROOT KEY: " + root.key[0]);
         //insertCnt++;
@@ -83,12 +77,53 @@ public class BTree {
             while(j < x.count && key > x.key[j]){ //Searches spot for recursive insert
                 j++;   
             }
-            insert(x.child[j], key);
+            insertNF(x.child[j], key);
             if(x.child[j].count == order){
                 //System.out.println("NODE IS FULL. MUST SPLIT.");
                 split(x, j, x.child[j]); // Splits on X's ith child
             }
-            insert(x.child[j], key); //Recursive insert
+            insertNF(x.child[j], key); //Recursive insert
+        }
+    }
+    
+    public void insertDF(BTree ents, int key){
+        BNode root = ents.root; //Finds the Node to be inserted, and starts at the Root Node
+        if(root.count == order - 1){ //Checks if Node is full
+            BNode axis = new BNode(order, null); //New Node   
+            //The ff are to initialize the new Node
+            ents.root = axis;
+            axis.leaf = false;
+            axis.count = 0;
+            axis.child[0] = root;
+            split(axis, 0, root); //Splits the root
+            insertNF(axis, key); //Calls insertNF if root is full
+        }
+        else {
+            insertNF(root, key); //Inserts into Root Node if it is not full   
+        }
+    }
+    
+    public void print(BNode node){ //Method to Print Node, or recurses when Root Node is not a leaf
+        for(int i = 0; i < node.count; i++){
+            System.out.println(node.getKey(i) + " "); //Prints out Root Node  
+        }
+        if(!node.leaf){
+            for(int j = 0; j <= node.count; j++){
+                if(node.getChild(j) != null){
+                    System.out.println(node.getChild(j));   
+                }
+            }
+        }
+    }
+    
+    public void searchNode(BTree ents, int key){ //Prints out Node
+        BNode pholder = new BNode(order, null);
+        pholder = search(ents.root, key);
+        if(pholder == null){
+            System.out.println("Specified Key does not exist.");
+        }
+        else{
+            print(pholder);   
         }
     }
 }
