@@ -1,4 +1,5 @@
 import java.io.*; //I put this out of habit pls forgib
+import java.util.*;
 
 //GGWP mga repa I have no idea what I'm doing how do you do Print method
 //UPDATE: I have finished print method, it's so jackass
