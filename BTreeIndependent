@@ -1,52 +1,186 @@
-import java.util.*;
 import java.io.*;
+import java.util.*;
 
 public class BTree{
-
-	private final int START_POINTER = 0;
 	private final int ORDER = 7;
-	private final int RECORD_SIZE = 3*ORDER - 1;
-	private RandomAccessFile data;
-	private long numRecords;
-	private long rootLocation;
+	private final int CENTER = (ORDER-1)/2;
+	private final long RECORD_COUNT_OFFSET = 0;
+	private final long INITIAL_OFFSET = 16;
+	private final long NODE_LENGTH = (3*ORDER-1)*8;	
 
-	class Node{
-		int[] keys;
-		Node[] children;
+	private long nodeCount, rootFinder;
+	private RandomAccessFile bTreeFile;
+	private ArrayList<Node> nodeList;
+	private ArrayList<Long> childInformation;
+	
+	public BTree(String name){
 
-		public Node(){
-			keys = new int[ORDER-1];
-			for(int i = 0; i < ORDER-1; i++)
-				keys[i] = -1;
-			for(int i = 0; i < ORDER; i++)
-				children[i] = null;
+		try{
+			File file = new File(name);
+			if(file.exists()){
+				bTreeFile = new RandomAccessFile(name,"rwd");
+				bTreeFile.seek(RECORD_COUNT_OFFSET);
+				nodeCount = bTreeFile.readLong();
+				rootFinder = bTreeFile.readLong();
+				nodeList = new ArrayList<>();
+				childInformation = new ArrayList<>();
+			}
+			else{
+				bTreeFile = new RandomAccessFile(name,"rwd");
+				bTreeFile.seek(RECORD_COUNT_OFFSET);
+				nodeCount = 1;
+				rootFinder = 0;
+				bTreeFile.writeLong(nodeCount);
+				bTreeFile.writeLong(rootFinder);
+				Node initial = new Node(0);
+				writeNode(initial);
+				initial = null;
+				nodeList = new ArrayList<>();
+				childInformation = new ArrayList<>();
+			}
+		}
+		catch(IOException ex){
+			ex.printStackTrace(System.out);
 		}
 	}
 
-	public BTree(String fileName) throws IOException{
-		File file = new File(fileName);
-		if(!file.exists()){
-			this.numRecords = 0;
-			this.rootLocation = -1;
-			this.data = new RandomAccessFile("Data.bt","rwd");	
-			this.data.seek(START_POINTER);
-			this.data.writeLong(numRecords);
-			this.data.writeLong(rootLocation);
-			//set first record with all -1's?
-		}else{
-			this.data = new RandomAccessFile(fileName, "rwd");	
-			this.data.seek(START_POINTER);
-			numRecords = this.data.readLong();
-			rootLocation = this.data.readLong();
-		} 
-	}
+	public void insert(long key, long nodeLocation, long offset) throws IOException{// method for inserting keys and their respective offset **complete for now
+		
+		Node checker = readNode(nodeLocation);
 
-	public void searchEntry(){
+		if(!checker.hasChild()){
+			checker.insertKey(key,offset);	
+		}
+
+		else{
+			long newLocation = checker.findChild(key);
+			checker = null;
+			insert(key,newLocation,offset);
+		}
+
+		if(checker!=null){
+			if(checker.keys[ORDER-1]!=-1)
+				split(checker);
+			else{
+				writeNode(checker);
+			}
+			checker = null;
+		}
 		
 	}
 
-	public void insertEntry(){
+	
 
+	
+	public long findRoot()throws IOException{
+		bTreeFile.seek(8);
+		return bTreeFile.readLong();
+	}
+	
+
+	private void writeNode(Node node) throws IOException{// used when writing to file
+		bTreeFile.seek(INITIAL_OFFSET+node.nodeID*NODE_LENGTH);
+		bTreeFile.writeLong(node.parentPointer);
+		for(int i = 0; i<ORDER; i++){
+			bTreeFile.writeLong(node.childID[i]);
+			if(i!=ORDER-1){
+				bTreeFile.writeLong(node.keys[i]);
+				bTreeFile.writeLong(node.recordsOffset[i]);
+			}
+		}
 	}
 
+	
+	private Node readNode(long location) throws IOException{//used when inserting to nodes
+		bTreeFile.seek(INITIAL_OFFSET+location*NODE_LENGTH);
+		Node toReturn = new Node(location);
+		toReturn.parentPointer = bTreeFile.readLong();
+		for(int i = 0; i<ORDER; i++){
+			toReturn.childID[i] = bTreeFile.readLong();
+			if(i!=ORDER-1){
+				toReturn.keys[i] = bTreeFile.readLong();
+				toReturn.recordsOffset[i] = bTreeFile.readLong();
+			}
+		}
+		return toReturn;
+	}
+	
+	private void split(Node node) throws IOException{ 
+		if(node.parentPointer == -1){
+			Node rightChild = new Node(nodeCount);
+			nodeCount++;
+			Node root = new Node(nodeCount);
+			nodeCount++;
+			node.transferInformation(root,rightChild);
+			node.parentPointer = root.nodeID;
+			rightChild.parentPointer = root.nodeID;
+			root.addChild(node.nodeID);
+			root.addChild(rightChild.nodeID);
+			writeNode(node);
+			writeNode(rightChild);
+			writeNode(root);
+			bTreeFile.seek(8);
+			bTreeFile.writeLong(root.nodeID);
+			node = null;
+			rightChild = null;
+			root = null;
+		}
+		else{
+			Node parent = readNode(node.parentPointer);
+			Node rightChild = new Node(nodeCount);
+			nodeCount++;
+			node.transferInformation(parent,rightChild);
+			parent.addChild(rightChild.nodeID);
+			rightChild.parentPointer = parent.nodeID;
+			relinkCP(rightChild);
+			writeNode(rightChild);
+			writeNode(node);
+			if(parent.keys[ORDER-1]!=-1){
+				split(parent);
+			}
+			writeNode(parent);
+		}
+	}
+	
+	class Node{ //node class
+		private long[] keys, childID, recordsOffset;
+		private long parentPointer, nodeID;
+		private Node(long nodeLocation){ //each node has 3 long[]
+			keys = new long[ORDER];
+			childID = new long[ORDER];
+			recordsOffset = new long[ORDER];
+			parentPointer = -1;
+			nodeID = nodeLocation;
+			for(int i = 0; i<ORDER; i++){
+				keys[i] = -1;
+				childID[i] = -1;
+				recordsOffset[i] = -1;
+			}
+		}
+
+		private boolean hasChild(){
+			if(childID[0]!=-1)
+				return true;
+			return false;
+		}
+
+		private long findChild(long key){
+			long id = -1;
+			for(int i = 0; i<ORDER-1; i++){
+				if(key>keys[i]&&key<keys[i+1])
+					return childID[i];
+			}
+			return id;
+		}
+
+		private void addChild(long nodeLocation){
+			for(int i = 0; i<ORDER; i++){
+				if(childID[i]==-1){
+					childID[i] = nodeLocation;
+					break;
+				}
+			}
+		}	
+		}
+	}
 }
