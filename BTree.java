@@ -1,6 +1,7 @@
 import java.io.*; //I put this out of habit pls forgib
 
 //readLong returns the next 8 bytes of an input stream, which is often interpreted as a Long
+//Apparently offset determines the position of a Node in the Values file 
 
 public class BTree {
     final int order = 7; //order of BTree
@@ -15,18 +16,18 @@ public class BTree {
     public BTree(String fileName) throws IOException{ //BTree Constructor
 	File file = new File(fileName);
 	if(!file.exists()){		
-  	    this.data = new RandomAccessFile(fileName,"rwd");
-	    this.data.seek(startPntr);	
-	    nodeCnt = this.data.readLong(); rootFinder = this.data.readLong();
+  	    data = new RandomAccessFile(fileName,"rwd");
+	    data.seek(startPntr);	
+	    nodeCnt = data.readLong(); rootFinder = data.readLong();
 	    nodeList = new ArrayList<>(); childID = new ArrayList<>();
 	}
 	else{
-	    this.data = new RandomAccessFile(fileName, "rwd");	
-	    this.data.seek(startPntr);
+	    data = new RandomAccessFile(fileName, "rwd");	
+	    data.seek(startPntr);
 	    nodeCnt = 1;
 	    rootFinder = 0;
-	    this.data.writeLong(nodeCnt);
-	    this.data.writeLong(rootFinder);
+	    data.writeLong(nodeCnt);
+	    data.writeLong(rootFinder);
 	    BNode source = new BNode(0); writeToNode(source);
 	    source = null; 
 	    nodeList = new ArrayList<>(); childID = new ArrayList<>();
@@ -47,6 +48,8 @@ public class BTree {
 	if(temp != null){
 	    if(temp.key[order - 1] != -1){
 		split(temp);    
+		data.seek(0);
+		data.writeLong(nodeCnt);
 	    }
 	    else{
 		writeToNode(temp);    
@@ -56,31 +59,31 @@ public class BTree {
     }
 	
     public long findRoot() throws IOException{
-	//this.data.seek(); //Pls help idk what to seek here
-	return this.data.readLong();
+	data.seek(8); //see note attached to the top
+	return data.readLong();
     }
 	
     public void writeToNode(BNode node) throws IOException{ //Writes to file
-	this.data.seek(offsetInit + node.nodeID * nodeLng);
-	this.data.writeLong(node.parentPntr);
+	data.seek(offsetInit + node.nodeID * nodeLng);
+	data.writeLong(node.parentPntr);
 	for(int i = 0; i < order; i++){
-	    this.data.writeLong(node.child[i]);
+	    data.writeLong(node.child[i]);
 	    if(i != order - 1){
-		this.data.writeLong(node.key[i]);
-		this.data.writeLong(node.recordOffset[i]);
+		data.writeLong(node.key[i]);
+		data.writeLong(node.recordOffset[i]);
 	    }
 	}
     }
 	
     public BNode readNode(long posn) throws IOException{
-	this.data.seek(offsetInit + posn * nodeLng);
+	data.seek(offsetInit + posn * nodeLng);
 	BNode toBeReturned = new BNode(posn);
-	toBeReturned.parentPntr = this.data.readLong();
+	toBeReturned.parentPntr = data.readLong();
 	for(int i = 0; i < order; i++){
-	    toBeReturned.child[i] = this.data.readLong();
+	    toBeReturned.child[i] = data.readLong();
 	    if(i != order - 1){
-		toBeReturned.key[i] = this.data.readLong();
-		toBeReturned.recordOffset[i] = this.data.readLong();
+		toBeReturned.key[i] = data.readLong();
+		toBeReturned.recordOffset[i] = data.readLong();
 	    }
 	}
 	return toBeReturned;
@@ -88,127 +91,86 @@ public class BTree {
 	
     public void split(BNode node) throws IOException{
 	if(node.parentPntr == -1){
-	    BNode y = new BNode(nodeCnt); nodeCnt++;
+	    BNode y = new BNode(nodeCnt); nodeCnt++; //BNode y = rightChild
 	    BNode root = new BNode(nodeCnt); nodeCnt++;
-	    
+	    node.transfer(root, y);
+	    node.parentPntr = root.nodeID; y.parentPntr = root.nodeID;
+	    root.addChild(node.nodeID);
+	    root.addChild(y.nodeID);
+	    writeToNode(node); writeToNode(y); writeToNode(root);
+	    data.seek(8); data.writeLong(root.nodeID);
+	    node = null; y = null; root = null; //Sets original values as null
+	}
+	else{
+	    BNode ancestor = readNode(node.parentPntr); //Parent Node
+	    BNode y = new BNode(nodeCnt); nodeCnt++;
+	    node.transfer(ancestor, y); ancestor.addChild(y.nodeID); y.parentPntr = ancestor.nodeID;
+	    attach(y);
+	    writeToNode(y); writeToNode(node);
+	    if(ancestor.key[order - 1] != - 1){
+		split(ancestor);    
+	    }
+	    writeToNode(ancestor);
+	}
+    }
+    //Got this from Kim
+    public void attach(BNode ancestor) throws IOException{ //Reconnects Nodes after splitting
+	for(int i = 0; i < (order - 1) / 2; i++){
+	    if(ancestor.child[i] == - 1){
+		break;    
+	    }
+	    data.seek(offsetInit + ancestor.child[i] * nodeLng); data.writeLong(ancestor.nodeID);
+	}
+    }    
+	
+    public long searchNodes(long dex, long posn) throws IOException{ //Recursively searches for a Key in one of the BTree's Nodes
+	BNode seeker = readNode(posn);
+	long newPosn;
+	for(int i = 0; i < order - 1; i++){
+	    if(seeker.key[i] == dex){
+		return seeker.recordOffset[i];    
+	    }
+	    else if(seeker.key[i] < dex && seeker.key[i + 1] == 1 && seeker.child[i + 1] != -1){
+		newPosn = seeker.child[i + 1]; seeker = null;
+		return searchNodes(dex, newPosn);
+	    }
+	    else if(seeker.key[i] > dex && seeker.child[i] != -1){
+		newPosn = seeker.child[i]; seeker = null;
+		return searchNodes(dex, newPosn);
+	    }
+	    else if(i == order - 2 && seeker.child[i + 1] != -1){
+		newPosn = seeker.child[i + 1]; seeker = null;
+		return searchNodes(dex, newPosn);
+	    }
+	}
+	return -1;
+    }
+	
+    public void writeToNode(BNode node) throws IOException{ //Writes the Node's values onto a file
+	data.seek(offsetInit + node.nodeID * nodeLng);
+	data.writeLong(node.parentPntr);
+	for(int i = 0; i < order; i++){
+	    data.writeLong(node.child[i]);
+	    if(i != order - 1){
+		data.writeLong(node.key[i]);
+		data.writeLong(recordOffset[i]);
+	    }
 	}
     }
 	
-	/*
-    //Method to search for given Node where we want to Insert a Key value
-    //Returns a Node with Key values in it
-    public BNode search(BNode root, int key){ 
-        int dex = 0;
-        while(dex < root.count && key > root.key[dex]){ //Increment in Node while Key > Current Value
-            dex++;
-        }
-        if(dex <= root.count && key == root.key[dex]){ //Return Node if Key is in Node
-            return root;
-        }
-        if(root.leaf){
-            return null;
-        }
-        else{
-            return search(root.getChild(dex), key);
-        }
+    public BNode readNode(long posn) throws IOException{
+	data.seek(offsetInit + posn * nodeLng);
+	BNode toRead = new BNode(posn);
+	toRead.parentPntr = data.readLong();
+	for(int i = 0; i < order; i++){
+	    toRead.child[i] = data.readLong();
+	    if(i != order - 1){
+		toRead.key[i] = data.readLong();
+		toRead.recordOffset[i] = data.readLong();
+	    }
+	}
+	return toRead;
     }
-    
-    public void split(BNode x, int i, BNode y){ //Done when a Node overflows
-        BNode z = new BNode(order, null); //additional Node for split
-        z.leaf = y.leaf;//Sets leaf boolean as the same as y
-        z.count = order - 1; //Updated size
-        for(int j = 0; j < order - 1; j++){
-            z.key[j] = y.key[j + order]; //Copies end of Y to front of Z
-        }
-        if(!y.leaf){ //Reassigns Children Nodes if Y is not a Leaf
-            for(int k = 0; k < order; k++){
-                z.child[k] = y.child[k + order];// Reassigning Y-children
-            }
-        }
-        y.count = order - 1; //new Size of Y
-        for(int j = x.count; j > i; j--){//If keys are pushed onto x, children nodes must be reassigned
-            x.child[j + 1] = x.child[j]; //Shifting X-children 
-        }
-        x.child[i + 1] = z; //Reassigns i+1 child of X
-        
-        for(int j = x.count; j > i; j--){
-            x.key[j + 1] = x.key[j]; //Shifts keys
-        }
-        x.key[i] = y.key[order - 1]; ///Pushes value up to root
-        y.key[order - 1] = 0; //Erases value where it was pushed from
-        
-        for(int j = 0; j < order - 1; j++){
-            y.key[j + order] = 0;// "Deletes" old values
-        }
-        x.count++; //Increases key count in X
-    }
-    
-    public void insertNF(BNode root, int key){ //Insert method when Node is not Full
-        int cnt = root.count; //Counts # of keys in Node X
-        System.out.println("ROOT KEY: " + root.key[0]);
-        //insertCnt++;
-        if(root.leaf){
-            while(cnt >= 1 && key < root.key[cnt - 1]){ //Looks for a spot where program can put a key
-                root.key[cnt] = root.key[cnt - 1]; //Shifts Values to make room
-                cnt--;
-            }
-            root.key[cnt] = key; //Assigns value to Key
-            root.count++; //Increments # of Keys in this Node
-        }
-        else {
-            int j = 0;
-            while(j < root.count && key > root.key[j]){ //Searches spot for recursive insert
-                j++;   
-            }
-            insertNF(root.child[j], key);
-            if(root.child[j].count == order){
-                //System.out.println("NODE IS FULL. MUST SPLIT.");
-                split(root, j, root.child[j]); // Splits on X's ith child
-            }
-            insertNF(root.child[j], key); //Recursive insert
-        }
-    }
-    
-    public void insertDF(BTree ents, int key){ //Default Insert method
-        BNode root = ents.root; //Finds the Node to be inserted, and starts at the Root Node
-        if(root.count == order - 1){ //Checks if Node is full
-            BNode axis = new BNode(order, null); //New Node   
-            //The ff are to initialize the new Node
-            ents.root = axis;
-            axis.leaf = false;
-            axis.count = 0;
-            axis.child[0] = root;
-            split(axis, 0, root); //Splits the root
-            insertNF(axis, key); //Calls insertNF if root is full
-        }
-        else {
-            insertNF(root, key); //Inserts into Root Node if it is not full   
-        }
-    }
-    
-    public void print(BNode node){ //Method to Print Node, or recurses when Root Node is not a leaf
-        for(int i = 0; i < node.count; i++){
-            System.out.println(node.getKey(i) + " "); //Prints out Root Node  
-        }
-        if(!node.leaf){
-            for(int j = 0; j <= node.count; j++){ //Pre-order Traversal of B-Tree
-                if(node.getChild(j) != null){
-                    System.out.println(node.getChild(j));   
-                }
-            }
-        }
-    }
-    
-    public void searchNode(BTree ents, int key){ //Prints out Node
-        BNode pholder = new BNode(order, null);
-        pholder = search(ents.root, key);
-        if(pholder == null){
-            System.out.println("Specified Key not found.");
-        }
-        else{
-            print(pholder);
-        }
-    }*/
 }
 
 class BNode{
@@ -219,14 +181,16 @@ class BNode{
     
     public BNode(long posn){
 	key = new long[order]; //Size of Keys array
-        child = new long[order]; //size of References array
+        child = new long[order + 1]; //size of Children array
 	recordOffset = new long[order];
 	parentPntr = -1;
 	nodeID = posn;
 	for(int i = 0; i < order; i++){
-		key[i] = -1;
 		child[i] = -1;
-		recordOffset[i] = -1;
+		if(i < order){
+		   key[i] = -1;
+		   recordOffset[i] = -1;
+		}
 	}
     }   
     
@@ -237,21 +201,68 @@ class BNode{
 	return false;
     }
 	
-    public long getKey(long dex){ //Returns reference value at specified index
-	    long id = -1;
+    public long getKey(long dex){ //Returns nodeID in a Children Arr given specific Keys
+	    long id = -1; //returns Child's ID
 	    for(int i = 0; i < order - 1; i++){
-		if(dex > key[i] && dex < key[i + 1]){
-			return child[i];	
+		if(dex > key[i] && dex < key[i + 1] || key[i + 1] == -1){
+			return child[i + 1];	
+		}
+		else if(dex < key[i]){
+			return child[i]	
 		}
 	    }
-       	    return key[dex];
+       	    return id;
     }
     
-    public void addChild(long posn){ //adds reference values for Children
+    public void addChild(long posn){ //adds Nodes to parent Node's children arr from a given location in the BTree file
         for(int i = 0; i < order; i++){
 	    if(child[i] == 1){
 		child[i] = posn;
 		break;
+	    }
+	}
+    }
+	
+    //If an array index has a value of -1, then it does not exist
+    public void keyInsert(long key, long offset){ //Param key determines the value of the key to be inserted
+	    for(int i = order - 2; i >= 0; i--){
+		if(key[i] == -1){
+		    if(i == 0){
+			key[i] = key;  
+			recordOffset[i] = offset;
+		    }
+		}
+		
+		if(key < key[i]){
+		    key[i + 1] = key[i];
+		    recordOffset[i + 1] = recordOffset[i];
+		    child[i + 2] = child[i + 1];
+		    if(i == 0){
+			key[i] = key;
+			recordOffset[i] = offset;
+			child[i + 1] = -1;
+		    }
+		}
+		else{
+		    key[i + 1] = key;
+		    recordOffset[i + 1] = offset;
+		    child[i + 2] = -1; 
+		}
+	    }
+    }
+    
+    //Got this from Kim, for use in Split
+    public void transfer(BNode parent, BNode offspring){
+	parent.keyInsert(key[(order - 1) / 2], recordOffset[(order - 1) / 2]); //Order - 1 / 2 determines the median of each node
+	key[(order - 1) / 2] = -1; //voids the Key value of the median in each Node after every split
+	recordOffset[(order - 1) / 2] = -1; //Same here
+	for(int i = ((order - 1) / 2) + 1; i <= order; i++){
+	    offspring.addChild(child[i]);
+	    child[i] = -1;
+	    if(i < order){
+		offspring.keyInsert(key[i], recordOffset[i]);
+		key[i] = -1;
+		recordOffset[i] = -1;
 	    }
 	}
     }
