@@ -10,8 +10,8 @@ public class BNode {
     public BNode(int order, BNode parent){
         this.order = order; //Assigns order/size
         this.parent = parent; //Assigns parent
-        key = new int[order - 1]; //size of Key array
-        child = new BNode[order]; //size of References array
+        key = new int[order]; //size of Key array
+        child = new BNode[order + 1]; //size of References array
         leaf = true; //Assumes every Node is a leaf at first
         count = 0; //Remains 0 until Keys are added        
     }   
