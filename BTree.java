@@ -8,29 +8,30 @@ public class BTree {
     BNode root; //B Tree Root Node
     long splitCnt; //data.bt
     long insertCnt; //Data.values
-	private final int START_POINTER = 0;
-	private final int RECORD_SIZE = 3*order - 1;
-	private RandomAccessFile data;
-	private long numRecords;
-	private long rootLocation;
+    private final int START_POINTER = 0;
+    private final int RECORD_SIZE = 3*order - 1;
+    private RandomAccessFile data;
+    private long numRecords;
+    private long rootLocation;
     
     public BTree(String fileName) throws IOException{ //BTree Constructor
         root = new BNode(order,null);
-		File file = new File(fileName);
-		if(!file.exists()){
-			this.numRecords = 0;
-			this.rootLocation = -1;
-			this.data = new RandomAccessFile("Data.bt","rwd");	
-			this.data.seek(START_POINTER);
-			this.data.writeLong(numRecords);
-			this.data.writeLong(rootLocation);
-			//set first record with all -1's?
-		}else{
-			this.data = new RandomAccessFile(fileName, "rwd");	
-			this.data.seek(START_POINTER);
-			numRecords = this.data.readLong();
-			rootLocation = this.data.readLong();
-		} 
+	File file = new File(fileName);
+	if(!file.exists()){
+	    this.numRecords = 0;
+	    this.rootLocation = -1;
+  	    this.data = new RandomAccessFile("Data.bt","rwd");	
+	    this.data.seek(START_POINTER);
+	    this.data.writeLong(numRecords);
+	    this.data.writeLong(rootLocation);
+	    //set first record with all -1's?
+	}
+	else{
+	    this.data = new RandomAccessFile(fileName, "rwd");	
+	    this.data.seek(START_POINTER);
+	    numRecords = this.data.readLong();
+	    rootLocation = this.data.readLong();
+	} 
         //splitCnt = -1; insertCnt = -1;
     }
     
@@ -147,5 +148,31 @@ public class BTree {
         else{
             print(pholder);
         }
+    }
+}
+
+class BNode{
+    static int order; //Determines order of Tree
+    int count; //Determines # of Keys in Node
+    int key[]; //Array of Key Values
+    BNode child[]; //Array of references;
+    boolean leaf; //Boolean to check whether Node is leaf or not
+    BNode parent; //Parent of current Node
+    
+    public BNode(int order, BNode parent){
+        this.order = order; //Assigns order/size
+        this.parent = parent; //Assigns parent
+        key = new int[order]; //size of Key array
+        child = new BNode[order]; //size of References array
+        leaf = true; //Assumes every Node is a leaf at first
+        count = 0; //Remains 0 until Keys are added        
+    }   
+    
+    public int getKey(int dex){ //Returns Key value at specified index
+        return key[dex];
+    }
+    
+    public BNode getChild(int dex){ //returns child of Node at specified index
+        return child[dex];
     }
 }
