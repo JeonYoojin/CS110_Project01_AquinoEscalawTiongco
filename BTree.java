@@ -1,17 +1,18 @@
 import java.io.*; //I put this out of habit pls forgib
+import java.util.*;
 
 //readLong returns the next 8 bytes of an input stream, which is often interpreted as a Long
 //Apparently offset determines the position of a Node in the Values file 
 
 public class BTree {
-    final int order = 7; //order of BTree
-    long nodeCnt; //counts # of Nodes
-    long rootFinder; //Ideally, should return index of root
-    final long startPntr = 0;
-    final long offsetInit = 16;
-    final int nodeLng = (3*order - 1) * 8;
-    RandomAccessFile data;
-    ArrayList<BNode> nodeList; ArrayList<Long> childID;
+    private final int order = 7; //order of BTree
+    private long nodeCnt; //counts # of Nodes
+    private long rootFinder; //Ideally, should return index of root
+    private final long startPntr = 0;
+    private final long offsetInit = 16;
+    private final int nodeLng = (3*order - 1) * 8;
+    private RandomAccessFile data;
+    private ArrayList<BNode> nodeList; ArrayList<Long> childID;
     
     public BTree(String fileName) throws IOException{ //BTree Constructor
 	File file = new File(fileName);
@@ -58,38 +59,7 @@ public class BTree {
 	}
     }
 	
-    public long findRoot() throws IOException{
-	data.seek(8); //see note attached to the top
-	return data.readLong();
-    }
-	
-    public void writeToNode(BNode node) throws IOException{ //Writes to file
-	data.seek(offsetInit + node.nodeID * nodeLng);
-	data.writeLong(node.parentPntr);
-	for(int i = 0; i < order; i++){
-	    data.writeLong(node.child[i]);
-	    if(i != order - 1){
-		data.writeLong(node.key[i]);
-		data.writeLong(node.recordOffset[i]);
-	    }
-	}
-    }
-	
-    public BNode readNode(long posn) throws IOException{
-	data.seek(offsetInit + posn * nodeLng);
-	BNode toBeReturned = new BNode(posn);
-	toBeReturned.parentPntr = data.readLong();
-	for(int i = 0; i < order; i++){
-	    toBeReturned.child[i] = data.readLong();
-	    if(i != order - 1){
-		toBeReturned.key[i] = data.readLong();
-		toBeReturned.recordOffset[i] = data.readLong();
-	    }
-	}
-	return toBeReturned;
-    }
-	
-    public void split(BNode node) throws IOException{
+    private void split(BNode node) throws IOException{
 	if(node.parentPntr == -1){
 	    BNode y = new BNode(nodeCnt); nodeCnt++; //BNode y = rightChild
 	    BNode root = new BNode(nodeCnt); nodeCnt++;
@@ -114,7 +84,7 @@ public class BTree {
 	}
     }
     //Got this from Kim
-    public void attach(BNode ancestor) throws IOException{ //Reconnects Nodes after splitting
+    private void attach(BNode ancestor) throws IOException{ //Reconnects Nodes after splitting
 	for(int i = 0; i < (order - 1) / 2; i++){
 	    if(ancestor.child[i] == - 1){
 		break;    
@@ -146,7 +116,7 @@ public class BTree {
 	return -1;
     }
 	
-    public void writeToNode(BNode node) throws IOException{ //Writes the Node's values onto a file
+    private void writeToNode(BNode node) throws IOException{ //Writes the Node's values onto a file
 	data.seek(offsetInit + node.nodeID * nodeLng);
 	data.writeLong(node.parentPntr);
 	for(int i = 0; i < order; i++){
@@ -158,7 +128,7 @@ public class BTree {
 	}
     }
 	
-    public BNode readNode(long posn) throws IOException{
+    private Node readNode(long posn) throws IOException{
 	data.seek(offsetInit + posn * nodeLng);
 	BNode toRead = new BNode(posn);
 	toRead.parentPntr = data.readLong();
@@ -173,13 +143,13 @@ public class BTree {
     }
 }
 
-class BNode{
-    long[] child; //Array of References
-    long[] key; //Array of Key Values
-    long[] recordOffset; //Array of Offsets
-    long parentPntr, nodeID; //parentPntr determines whether a Node has a parent or not
+class Node{
+    private long[] child; //Array of References
+    private long[] key; //Array of Key Values
+    private long[] recordOffset; //Array of Offsets
+    private long parentPntr, nodeID; //parentPntr determines whether a Node has a parent or not
     
-    public BNode(long posn){
+    private Node(long posn){
 	key = new long[order]; //Size of Keys array
         child = new long[order + 1]; //size of Children array
 	recordOffset = new long[order];
@@ -194,27 +164,27 @@ class BNode{
 	}
     }   
     
-    public boolean leaf(){ //Checks if Node is a leaf or not
+    private boolean leaf(){ //Checks if Node is a leaf or not
 	if(child[0] != -1){
 	    return true;	
 	}
 	return false;
     }
 	
-    public long getKey(long dex){ //Returns nodeID in a Children Arr given specific Keys
+    private long getKey(long dex){ //Returns nodeID in a Children Arr given specific Keys
 	    long id = -1; //returns Child's ID
 	    for(int i = 0; i < order - 1; i++){
 		if(dex > key[i] && dex < key[i + 1] || key[i + 1] == -1){
 			return child[i + 1];	
 		}
 		else if(dex < key[i]){
-			return child[i]	
+			return child[i];
 		}
 	    }
        	    return id;
     }
     
-    public void addChild(long posn){ //adds Nodes to parent Node's children arr from a given location in the BTree file
+    private void addChild(long posn){ //adds Nodes to parent Node's children arr from a given location in the BTree file
         for(int i = 0; i < order; i++){
 	    if(child[i] == 1){
 		child[i] = posn;
@@ -224,7 +194,7 @@ class BNode{
     }
 	
     //If an array index has a value of -1, then it does not exist
-    public void keyInsert(long key, long offset){ //Param key determines the value of the key to be inserted
+    private void keyInsert(long key, long offset){ //Param key determines the value of the key to be inserted
 	    for(int i = order - 2; i >= 0; i--){
 		if(key[i] == -1){
 		    if(i == 0){
@@ -252,7 +222,7 @@ class BNode{
     }
     
     //Got this from Kim, for use in Split
-    public void transfer(BNode parent, BNode offspring){
+    private void transfer(BNode parent, BNode offspring){
 	parent.keyInsert(key[(order - 1) / 2], recordOffset[(order - 1) / 2]); //Order - 1 / 2 determines the median of each node
 	key[(order - 1) / 2] = -1; //voids the Key value of the median in each Node after every split
 	recordOffset[(order - 1) / 2] = -1; //Same here
