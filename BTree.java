@@ -36,7 +36,7 @@ public class BTree {
     public void split(BNode x, int i, BNode y){ //Done when a Node overflows
         BNode z = new BNode(order, null); //additional Node for split
         z.leaf = y.leaf;//Sets leaf boolean as the same as y
-        z.count = order - 1; //Updated size
+        z.count = order/2; //Updated size
         for(int j = 0; j < order - 1; j++){
             z.key[j] = y.key[j + order]; //Copies end of Y to front of Z
         }
