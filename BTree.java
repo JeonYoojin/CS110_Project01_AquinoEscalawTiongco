@@ -7,38 +7,33 @@ import java.util.*;
 public class BTree {
     private final int order = 7; //order of BTree
     private long nodeCnt; //counts # of Nodes
-    private long rootFinder; //Ideally, should return index of root
     private final long startPntr = 0;
     private final long offsetInit = 16;
     private final int nodeLng = (3*order - 1) * 8;
     private RandomAccessFile data;
-    private ArrayList<BNode> nodeList; ArrayList<Long> childID;
     
     public BTree(String fileName) throws IOException{ //BTree Constructor
 	File file = new File(fileName);
-	if(!file.exists()){		
+	if(file.exists()){		
   	    data = new RandomAccessFile(fileName,"rwd");
 	    data.seek(startPntr);	
-	    nodeCnt = data.readLong(); rootFinder = data.readLong();
-	    nodeList = new ArrayList<>(); childID = new ArrayList<>();
+	    nodeCnt = data.readLong();
 	}
 	else{
 	    data = new RandomAccessFile(fileName, "rwd");	
 	    data.seek(startPntr);
 	    nodeCnt = 1;
-	    rootFinder = 0;
 	    data.writeLong(nodeCnt);
-	    data.writeLong(rootFinder);
-	    BNode source = new BNode(0); writeToNode(source);
+	    data.writeLong(0);
+	    Node source = new Node(0); writeToNode(source);
 	    source = null; 
-	    nodeList = new ArrayList<>(); childID = new ArrayList<>();
 	} 
     }
     
     public void insert(long key, long posn, long offset) throws IOException{
-	BNode temp = readNode(posn);
+	Node temp = readNode(posn);
 	if(!temp.leaf()){
-	    temp.insertKey(key, offset);	
+	    temp.keyInsert(key, offset);	
 	}
 	else{
 	    long newPosn = temp.getKey(key);
@@ -47,7 +42,7 @@ public class BTree {
 	}
 	
 	if(temp != null){
-	    if(temp.key[order - 1] != -1){
+	    if(temp.keyArr[order - 1] != -1){
 		split(temp);    
 		data.seek(0);
 		data.writeLong(nodeCnt);
@@ -59,10 +54,10 @@ public class BTree {
 	}
     }
 	
-    private void split(BNode node) throws IOException{
+    private void split(Node node) throws IOException{
 	if(node.parentPntr == -1){
-	    BNode y = new BNode(nodeCnt); nodeCnt++; //BNode y = rightChild
-	    BNode root = new BNode(nodeCnt); nodeCnt++;
+	    Node y = new Node(nodeCnt); nodeCnt++; //BNode y = rightChild
+	    Node root = new Node(nodeCnt); nodeCnt++;
 	    node.transfer(root, y);
 	    node.parentPntr = root.nodeID; y.parentPntr = root.nodeID;
 	    root.addChild(node.nodeID);
@@ -72,70 +67,70 @@ public class BTree {
 	    node = null; y = null; root = null; //Sets original values as null
 	}
 	else{
-	    BNode ancestor = readNode(node.parentPntr); //Parent Node
-	    BNode y = new BNode(nodeCnt); nodeCnt++;
+	    Node ancestor = readNode(node.parentPntr); //Parent Node
+	    Node y = new Node(nodeCnt); nodeCnt++;
 	    node.transfer(ancestor, y); ancestor.addChild(y.nodeID); y.parentPntr = ancestor.nodeID;
 	    attach(y);
 	    writeToNode(y); writeToNode(node);
-	    if(ancestor.key[order - 1] != - 1){
+	    if(ancestor.keyArr[order - 1] != - 1){
 		split(ancestor);    
 	    }
 	    writeToNode(ancestor);
 	}
     }
     //Got this from Kim
-    private void attach(BNode ancestor) throws IOException{ //Reconnects Nodes after splitting
+    private void attach(Node ancestor) throws IOException{ //Reconnects Nodes after splitting
 	for(int i = 0; i < (order - 1) / 2; i++){
-	    if(ancestor.child[i] == - 1){
+	    if(ancestor.childArr[i] == - 1){
 		break;    
 	    }
-	    data.seek(offsetInit + ancestor.child[i] * nodeLng); data.writeLong(ancestor.nodeID);
+	    data.seek(offsetInit + ancestor.childArr[i] * nodeLng); data.writeLong(ancestor.nodeID);
 	}
     }    
 	
     public long searchNodes(long dex, long posn) throws IOException{ //Recursively searches for a Key in one of the BTree's Nodes
-	BNode seeker = readNode(posn);
+	Node seeker = readNode(posn);
 	long newPosn;
 	for(int i = 0; i < order - 1; i++){
-	    if(seeker.key[i] == dex){
+	    if(seeker.keyArr[i] == dex){
 		return seeker.recordOffset[i];    
 	    }
-	    else if(seeker.key[i] < dex && seeker.key[i + 1] == 1 && seeker.child[i + 1] != -1){
-		newPosn = seeker.child[i + 1]; seeker = null;
+	    else if(seeker.keyArr[i] < dex && seeker.keyArr[i + 1] == 1 && seeker.childArr[i + 1] != -1){
+		newPosn = seeker.childArr[i + 1]; seeker = null;
 		return searchNodes(dex, newPosn);
 	    }
-	    else if(seeker.key[i] > dex && seeker.child[i] != -1){
-		newPosn = seeker.child[i]; seeker = null;
+	    else if(seeker.keyArr[i] > dex && seeker.childArr[i] != -1){
+		newPosn = seeker.childArr[i]; seeker = null;
 		return searchNodes(dex, newPosn);
 	    }
-	    else if(i == order - 2 && seeker.child[i + 1] != -1){
-		newPosn = seeker.child[i + 1]; seeker = null;
+	    else if(i == order - 2 && seeker.childArr[i + 1] != -1){
+		newPosn = seeker.childArr[i + 1]; seeker = null;
 		return searchNodes(dex, newPosn);
 	    }
 	}
 	return -1;
     }
 	
-    private void writeToNode(BNode node) throws IOException{ //Writes the Node's values onto a file
+    private void writeToNode(Node node) throws IOException{ //Writes the Node's values onto a file
 	data.seek(offsetInit + node.nodeID * nodeLng);
 	data.writeLong(node.parentPntr);
 	for(int i = 0; i < order; i++){
-	    data.writeLong(node.child[i]);
+	    data.writeLong(node.childArr[i]);
 	    if(i != order - 1){
-		data.writeLong(node.key[i]);
-		data.writeLong(recordOffset[i]);
+		data.writeLong(node.keyArr[i]);
+		data.writeLong(node.recordOffset[i]);
 	    }
 	}
     }
 	
     private Node readNode(long posn) throws IOException{
 	data.seek(offsetInit + posn * nodeLng);
-	BNode toRead = new BNode(posn);
+	Node toRead = new Node(posn);
 	toRead.parentPntr = data.readLong();
 	for(int i = 0; i < order; i++){
-	    toRead.child[i] = data.readLong();
+	    toRead.childArr[i] = data.readLong();
 	    if(i != order - 1){
-		toRead.key[i] = data.readLong();
+		toRead.keyArr[i] = data.readLong();
 		toRead.recordOffset[i] = data.readLong();
 	    }
 	}
@@ -144,94 +139,95 @@ public class BTree {
 }
 
 class Node{
-    private long[] child; //Array of References
-    private long[] key; //Array of Key Values
-    private long[] recordOffset; //Array of Offsets
-    private long parentPntr, nodeID; //parentPntr determines whether a Node has a parent or not
+	private final int order;
+    long[] childArr; //Array of References
+    long[] keyArr; //Array of Key Values
+    long[] recordOffset; //Array of Offsets
+    long parentPntr, nodeID; //parentPntr determines whether a Node has a parent or not
     
-    private Node(long posn){
-	key = new long[order]; //Size of Keys array
-        child = new long[order + 1]; //size of Children array
+    public Node(long posn){
+	keyArr = new long[order]; //Size of Keys array
+    childArr = new long[order + 1]; //size of Children array
 	recordOffset = new long[order];
 	parentPntr = -1;
 	nodeID = posn;
 	for(int i = 0; i < order; i++){
-		child[i] = -1;
+		childArr[i] = -1;
 		if(i < order){
-		   key[i] = -1;
+		   keyArr[i] = -1;
 		   recordOffset[i] = -1;
 		}
 	}
     }   
     
-    private boolean leaf(){ //Checks if Node is a leaf or not
-	if(child[0] != -1){
+    public boolean leaf(){ //Checks if Node is a leaf or not
+	if(childArr[0] != -1){
 	    return true;	
 	}
 	return false;
     }
 	
-    private long getKey(long dex){ //Returns nodeID in a Children Arr given specific Keys
+    public long getKey(long dex){ //Returns nodeID in a Children Arr given specific Keys
 	    long id = -1; //returns Child's ID
 	    for(int i = 0; i < order - 1; i++){
-		if(dex > key[i] && dex < key[i + 1] || key[i + 1] == -1){
-			return child[i + 1];	
+		if(dex > keyArr[i] && dex < keyArr[i + 1] || keyArr[i + 1] == -1){
+			return childArr[i + 1];	
 		}
-		else if(dex < key[i]){
-			return child[i];
+		else if(dex < keyArr[i]){
+			return childArr[i];
 		}
 	    }
        	    return id;
     }
     
-    private void addChild(long posn){ //adds Nodes to parent Node's children arr from a given location in the BTree file
+    public void addChild(long posn){ //adds Nodes to parent Node's children arr from a given location in the BTree file
         for(int i = 0; i < order; i++){
-	    if(child[i] == 1){
-		child[i] = posn;
+	    if(childArr[i] == 1){
+		childArr[i] = posn;
 		break;
 	    }
 	}
     }
 	
     //If an array index has a value of -1, then it does not exist
-    private void keyInsert(long key, long offset){ //Param key determines the value of the key to be inserted
+    public void keyInsert(long key, long offset){ //Param key determines the value of the key to be inserted
 	    for(int i = order - 2; i >= 0; i--){
-		if(key[i] == -1){
+		if(keyArr[i] == -1){
 		    if(i == 0){
-			key[i] = key;  
+			keyArr[i] = key;  
 			recordOffset[i] = offset;
 		    }
 		}
 		
-		if(key < key[i]){
-		    key[i + 1] = key[i];
+		if(key < keyArr[i]){
+		    keyArr[i + 1] = keyArr[i];
 		    recordOffset[i + 1] = recordOffset[i];
-		    child[i + 2] = child[i + 1];
+		    childArr[i + 2] = childArr[i + 1];
 		    if(i == 0){
-			key[i] = key;
+			keyArr[i] = key;
 			recordOffset[i] = offset;
-			child[i + 1] = -1;
+			childArr[i + 1] = -1;
 		    }
 		}
 		else{
-		    key[i + 1] = key;
+		    keyArr[i + 1] = key;
 		    recordOffset[i + 1] = offset;
-		    child[i + 2] = -1; 
+		    childArr[i + 2] = -1; 
 		}
 	    }
     }
     
     //Got this from Kim, for use in Split
-    private void transfer(BNode parent, BNode offspring){
-	parent.keyInsert(key[(order - 1) / 2], recordOffset[(order - 1) / 2]); //Order - 1 / 2 determines the median of each node
-	key[(order - 1) / 2] = -1; //voids the Key value of the median in each Node after every split
+    public void transfer(Node parent, Node offspring){
+	parent.keyInsert(keyArr[(order - 1) / 2], recordOffset[(order - 1) / 2]); //Order - 1 / 2 determines the median of each node
+	keyArr[(order - 1) / 2] = -1; //voids the Key value of the median in each Node after every split
 	recordOffset[(order - 1) / 2] = -1; //Same here
 	for(int i = ((order - 1) / 2) + 1; i <= order; i++){
-	    offspring.addChild(child[i]);
-	    child[i] = -1;
+	    offspring.addChild(childArr[i]);
+	    childArr[i] = -1;
 	    if(i < order){
-		offspring.keyInsert(key[i], recordOffset[i]);
-		key[i] = -1;
+		offspring.keyInsert(keyArr[i], recordOffset[i]);
+		keyArr[i] = -1;
 		recordOffset[i] = -1;
 	    }
 	}
