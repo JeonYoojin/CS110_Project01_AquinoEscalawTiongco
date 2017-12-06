@@ -1,5 +1,4 @@
 import java.io.*; //I put this out of habit pls forgib
-import java.util.*;
 
 //GGWP mga repa I have no idea what I'm doing how do you do Print method
 //UPDATE: I have finished print method, it's so jackass
@@ -120,14 +119,17 @@ public class BTree {
         }
     }
     
-    public void searchNode(BTree ents, int key){ //Prints out Node
+	//Mico, I changed this from void to boolean for the driver class
+    public boolean searchNode(BTree ents, int key){ //Prints out Node, check if node or key exists
         BNode pholder = new BNode(order, null);
         pholder = search(ents.root, key);
         if(pholder == null){
-            System.out.println("Specified Key not found.");
+            //System.out.println("Specified Key not found.");
+			return false;
         }
         else{
-            print(pholder);   
+            //print(pholder);
+			return true;
         }
     }
 }

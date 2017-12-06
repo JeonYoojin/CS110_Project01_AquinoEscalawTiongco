@@ -2,30 +2,55 @@ import java.util.*;
 import java.io.*;
 
 
-public class btdb {
-    private long cntRecords; 
-    private RandomAccessFile File;
-    public static void main(String args[]) throws FileNotFoundException{
-        Scanner read = new Scanner(System.in);
-        String strFile = read.next();
-        
-        
-        btdb(String strFile) throws IOException {
-            File file = new File(strFile);
-            if(!file.exists()){
-                this.cntRecords = 0;
-                this.file = new RandomAccessFile(strFile, "rwd");
-                this.file.seek(RECORD_COUNT_OFFSET);
-                this.file.writeLong(this.cntRecords);
-            }
-            
-            else{
-                this.file = new RandomAccessFile(strFile, "rwd");
-                this.file.seek(RECORD_COUNT_OFFSET);
-                this.cntRecords = this.file.readLong();
-            }
-        }
-        
-        
-    }
+
+public class btdb{
+
+	public static void main(String[] args) throws IOException{
+		
+		Scanner read = new Scanner(System.in);
+
+		//BTree tree = new BTree(args[0]);
+		BTree tree = new BTree(7);
+		ValuesEdit values = new ValuesEdit(args[1]);
+
+		while(true){
+			System.out.print(">"); //the pointer thing for inputs
+			String[] input = read.nextLine().split("\\s"); // splits input by spaces???
+			if(input[0].equals("insert")){
+				int key = Integer.parseInt(input[1]);
+				if(tree.searchNode(tree,key) == false){ //means it doesn't exist yet
+					String word = "";
+				
+					for(int i = 2; i < input.length; i++){
+						word = word + input[i] + " ";
+					}
+					
+					values.insertEntry(word);
+					tree.insertDF(tree,key);
+					System.out.printf("< %d inserted.\n",key);
+					System.out.println("key:" + input[1]);
+					System.out.println("value:"+ word);
+				}
+				else{
+					System.out.printf("ERROR: %d already exists.\n",key);
+				}
+				
+			} else if(input[0].equals("update")){
+				//find key in BTree
+				//get value from key in BTree
+				//overwrite the value
+			} else if(input[0].equals("select")){
+				System.out.println(values.readEntry(Integer.parseInt(input[1])));
+				//find key in BTree
+				//get value from key in BTree
+				//return and display value
+			} else if(input[0].equals("exit")){
+				break;
+			} else{
+				System.out.println("ERROR: invalid command.");
+			}
+		}
+
+	}
+
 }
