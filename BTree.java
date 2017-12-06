@@ -1,7 +1,6 @@
 import java.io.*; //I put this out of habit pls forgib
 
-//GGWP mga repa I have no idea what I'm doing how do you do Print method
-//UPDATE: I have finished print method, it's so jackass
+//readLong returns the next 8 bytes of an input stream, which is often interpreted as a Long
 
 public class BTree {
     final int order = 7; //order of BTree
@@ -9,7 +8,7 @@ public class BTree {
     long rootFinder; //Ideally, should return index of root
     final long startPntr = 0;
     final long offsetInit = 16;
-    final int nodeLength = (3*order - 1) * 8;
+    final int nodeLng = (3*order - 1) * 8;
     RandomAccessFile data;
     ArrayList<BNode> nodeList; ArrayList<Long> childID;
     
@@ -55,6 +54,47 @@ public class BTree {
 	    temp = null;
 	}
     }
+	
+    public long findRoot() throws IOException{
+	//this.data.seek(); //Pls help idk what to seek here
+	return this.data.readLong();
+    }
+	
+    public void writeToNode(BNode node) throws IOException{ //Writes to file
+	this.data.seek(offsetInit + node.nodeID * nodeLng);
+	this.data.writeLong(node.parentPntr);
+	for(int i = 0; i < order; i++){
+	    this.data.writeLong(node.child[i]);
+	    if(i != order - 1){
+		this.data.writeLong(node.key[i]);
+		this.data.writeLong(node.recordOffset[i]);
+	    }
+	}
+    }
+	
+    public BNode readNode(long posn) throws IOException{
+	this.data.seek(offsetInit + posn * nodeLng);
+	BNode toBeReturned = new BNode(posn);
+	toBeReturned.parentPntr = this.data.readLong();
+	for(int i = 0; i < order; i++){
+	    toBeReturned.child[i] = this.data.readLong();
+	    if(i != order - 1){
+		toBeReturned.key[i] = this.data.readLong();
+		toBeReturned.recordOffset[i] = this.data.readLong();
+	    }
+	}
+	return toBeReturned;
+    }
+	
+    public void split(BNode node) throws IOException{
+	if(node.parentPntr == -1){
+	    BNode y = new BNode(nodeCnt); nodeCnt++;
+	    BNode root = new BNode(nodeCnt); nodeCnt++;
+	    
+	}
+    }
+	
+	/*
     //Method to search for given Node where we want to Insert a Key value
     //Returns a Node with Key values in it
     public BNode search(BNode root, int key){ 
@@ -168,7 +208,7 @@ public class BTree {
         else{
             print(pholder);
         }
-    }
+    }*/
 }
 
 class BNode{
