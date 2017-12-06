@@ -4,37 +4,57 @@ import java.io.*; //I put this out of habit pls forgib
 //UPDATE: I have finished print method, it's so jackass
 
 public class BTree {
-    private final int order = 7; //order of BTree
-    BNode root; //B Tree Root Node
-    long splitCnt; //data.bt
-    long insertCnt; //Data.values
-    private final int START_POINTER = 0;
-    private final int RECORD_SIZE = 3*order - 1;
-    private RandomAccessFile data;
-    private long numRecords;
-    private long rootLocation;
+    final int order = 7; //order of BTree
+    long nodeCnt; //counts # of Nodes
+    long rootFinder; //Ideally, should return index of root
+    final long startPntr = 0;
+    final long offsetInit = 16;
+    final int nodeLength = (3*order - 1) * 8;
+    RandomAccessFile data;
+    ArrayList<BNode> nodeList; ArrayList<Long> childID;
     
     public BTree(String fileName) throws IOException{ //BTree Constructor
-        root = new BNode(order,null);
 	File file = new File(fileName);
-	if(!file.exists()){
-	    this.numRecords = 0;
-	    this.rootLocation = -1;
-  	    this.data = new RandomAccessFile("Data.bt","rwd");	
-	    this.data.seek(START_POINTER);
-	    this.data.writeLong(numRecords);
-	    this.data.writeLong(rootLocation);
-	    //set first record with all -1's?
+	if(!file.exists()){		
+  	    this.data = new RandomAccessFile(fileName,"rwd");
+	    this.data.seek(startPntr);	
+	    nodeCnt = this.data.readLong(); rootFinder = this.data.readLong();
+	    nodeList = new ArrayList<>(); childID = new ArrayList<>();
 	}
 	else{
 	    this.data = new RandomAccessFile(fileName, "rwd");	
-	    this.data.seek(START_POINTER);
-	    numRecords = this.data.readLong();
-	    rootLocation = this.data.readLong();
+	    this.data.seek(startPntr);
+	    nodeCnt = 1;
+	    rootFinder = 0;
+	    this.data.writeLong(nodeCnt);
+	    this.data.writeLong(rootFinder);
+	    BNode source = new BNode(0); writeToNode(source);
+	    source = null; 
+	    nodeList = new ArrayList<>(); childID = new ArrayList<>();
 	} 
-        //splitCnt = -1; insertCnt = -1;
     }
     
+    public void insert(long key, long posn, long offset) throws IOException{
+	BNode temp = readNode(posn);
+	if(!temp.leaf()){
+	    temp.insertKey(key, offset);	
+	}
+	else{
+	    long newPosn = temp.getKey(key);
+	    temp = null;
+	    insert(key, newPosn, offset);
+	}
+	
+	if(temp != null){
+	    if(temp.key[order - 1] != -1){
+		split(temp);    
+	    }
+	    else{
+		writeToNode(temp);    
+	    }
+	    temp = null;
+	}
+    }
     //Method to search for given Node where we want to Insert a Key value
     //Returns a Node with Key values in it
     public BNode search(BNode root, int key){ 
@@ -152,27 +172,47 @@ public class BTree {
 }
 
 class BNode{
-    static int order; //Determines order of Tree
-    int count; //Determines # of Keys in Node
-    int key[]; //Array of Key Values
-    BNode child[]; //Array of references;
-    boolean leaf; //Boolean to check whether Node is leaf or not
-    BNode parent; //Parent of current Node
+    long[] child; //Array of References
+    long[] key; //Array of Key Values
+    long[] recordOffset; //Array of Offsets
+    long parentPntr, nodeID; //parentPntr determines whether a Node has a parent or not
     
-    public BNode(int order, BNode parent){
-        this.order = order; //Assigns order/size
-        this.parent = parent; //Assigns parent
-        key = new int[order]; //size of Key array
-        child = new BNode[order]; //size of References array
-        leaf = true; //Assumes every Node is a leaf at first
-        count = 0; //Remains 0 until Keys are added        
+    public BNode(long posn){
+	key = new long[order]; //Size of Keys array
+        child = new long[order]; //size of References array
+	recordOffset = new long[order];
+	parentPntr = -1;
+	nodeID = posn;
+	for(int i = 0; i < order; i++){
+		key[i] = -1;
+		child[i] = -1;
+		recordOffset[i] = -1;
+	}
     }   
     
-    public int getKey(int dex){ //Returns Key value at specified index
-        return key[dex];
+    public boolean leaf(){ //Checks if Node is a leaf or not
+	if(child[0] != -1){
+	    return true;	
+	}
+	return false;
+    }
+	
+    public long getKey(long dex){ //Returns reference value at specified index
+	    long id = -1;
+	    for(int i = 0; i < order - 1; i++){
+		if(dex > key[i] && dex < key[i + 1]){
+			return child[i];	
+		}
+	    }
+       	    return key[dex];
     }
     
-    public BNode getChild(int dex){ //returns child of Node at specified index
-        return child[dex];
+    public void addChild(long posn){ //adds reference values for Children
+        for(int i = 0; i < order; i++){
+	    if(child[i] == 1){
+		child[i] = posn;
+		break;
+	    }
+	}
     }
 }
