@@ -34,20 +34,29 @@ public class btdb{
 			} else if(input[0].equals("update")){
 				long key = Long.parseLong(input[1]);
 				String word = "";
+				long offset = tree.searchNodes(key,tree.findRoot());
+				
 				for(int i = 2; i < input.length; i++){
 						word = word + input[i] + " ";
 				}
-				//long offset = tree.get
-				//if(
-				//find key in BTree
-				//get value from key in BTree
-				//overwrite the value
+				
+				if(offset != -1){
+					values.updateEntry(key,word);
+					System.out.printf("< %d updated.\n", key);
+				}
+				else{
+					System.out.println("ERROR: key does not exist.");
+				}
 			} else if(input[0].equals("select")){
-				System.out.println(values.readEntry(Long.parseLong(input[1])));
 				long key = Long.parseLong(input[1]);
-				//find key in BTree
-				//get value from key in BTree
-				//return and display value
+				String word = "";
+				long offset = tree.searchNodes(key,tree.findRoot());
+				if(offset != -1){
+					System.out.printf("> %d => %s\n",key,values.readEntry(offset));
+				}
+				else{
+					System.out.println("ERROR: key does not exist.");
+				}
 			} else if(input[0].equals("exit")){
 				break;
 			} else{
