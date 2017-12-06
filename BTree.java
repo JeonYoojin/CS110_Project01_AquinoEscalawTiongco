@@ -1,4 +1,5 @@
-import java.io.*; //I put this out of habit pls forgib
+import java.io.*; 
+import java.util.*;
 
 //GGWP mga repa I have no idea what I'm doing how do you do Print method
 //UPDATE: I have finished print method, it's so jackass
@@ -9,7 +10,7 @@ public class BTree {
     long splitCnt; //data.bt
     long insertCnt; //Data.values
     
-    public BTree(String fileName){ //BTree Constructor
+    public BTree(String fileName) throws IOException{ //BTree Constructor
         root = new BNode(order,null);
         //splitCnt = -1; insertCnt = -1;
     }
