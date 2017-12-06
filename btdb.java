@@ -9,16 +9,15 @@ public class btdb{
 		
 		Scanner read = new Scanner(System.in);
 
-		//BTree tree = new BTree(args[0]);
-		BTree tree = new BTree(7);
+		BTree tree = new BTree(args[0]);
 		ValuesEdit values = new ValuesEdit(args[1]);
 
 		while(true){
-			System.out.print(">"); //the pointer thing for inputs
+			System.out.print("> "); //the pointer thing for inputs
 			String[] input = read.nextLine().split("\\s"); // splits input by spaces???
 			if(input[0].equals("insert")){
 				int key = Integer.parseInt(input[1]);
-				if(tree.searchNode(tree,key) == false){ //means it doesn't exist yet
+				if(tree.search(tree.root,key) == null){ //means it doesn't exist yet
 					String word = "";
 				
 					for(int i = 2; i < input.length; i++){
@@ -28,6 +27,7 @@ public class btdb{
 					values.insertEntry(word);
 					tree.insertDF(tree,key);
 					System.out.printf("< %d inserted.\n",key);
+					//testing purposes
 					System.out.println("key:" + input[1]);
 					System.out.println("value:"+ word);
 				}
@@ -37,6 +37,7 @@ public class btdb{
 				
 			} else if(input[0].equals("update")){
 				//find key in BTree
+				
 				//get value from key in BTree
 				//overwrite the value
 			} else if(input[0].equals("select")){
