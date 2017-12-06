@@ -14,41 +14,45 @@ public class ValuesEdit{
 	public ValuesEdit(String fileName) throws IOException{
 		File file = new File(fileName);
 		if(!file.exists()){
-			this.numRecords = 0;
-			this.data = new RandomAccessFile("Data.values","rwd");	
-			this.data.seek(START_POINTER);
-			this.data.writeLong(this.numRecords);
+			numRecords = 0;
+			data = new RandomAccessFile(fileName,"rwd");	
+			data.seek(START_POINTER);
+			data.writeLong(numRecords);
 		} 
 		else{
-			this.data = new RandomAccessFile(file, "rwd");
-			this.data.seek(START_POINTER);
-			this.numRecords = this.data.readLong();
+			data = new RandomAccessFile(fileName, "rwd");
+			data.seek(START_POINTER);
+			numRecords = data.readLong();
 		} 
 	}
 
 	public void insertEntry(String entry) throws IOException{
-		this.data.seek(START_POINTER);
-		this.data.writeLong(++numRecords);
-		//<DEBUG> System.out.println(entry);
+		data.seek(HEADER_SIZE + (numRecords)*(TOTAL_BYTE_SIZE));
 		byte[] word = entry.getBytes("UTF8");
-		this.data.seek(HEADER_SIZE + (numRecords-1)*(TOTAL_BYTE_SIZE));
-		this.data.writeShort(entry.length());
-		this.data.write(word);
+		data.writeShort(entry.length());
+		data.write(word);
+		data.seek(START_POINTER);
+		data.writeLong(numRecords++);
+		//<DEBUG> System.out.println(entry);
 	}
 
 	public void updateEntry(int point, String entry) throws IOException{
 		byte[] word = entry.getBytes("UTF8");
-		this.data.seek(HEADER_SIZE+point*(TOTAL_BYTE_SIZE));
-		this.data.writeShort(entry.length());
-		this.data.write(word);
+		data.seek(HEADER_SIZE+point*TOTAL_BYTE_SIZE);
+		data.writeShort(entry.length());
+		data.write(word);
 	}
 
-	public String readEntry(int point) throws IOException{
-		this.data.seek(HEADER_SIZE+point*(TOTAL_BYTE_SIZE));
-		int size = this.data.readShort();
+	public String readEntry(long point) throws IOException{
+		data.seek(HEADER_SIZE+point*TOTAL_BYTE_SIZE);
+		short size = data.readShort();
 		byte[] word = new byte[size];
-		this.data.read(word);
-		String output = new String(word, "UTF8");
+		
+		/*for(int i = 0; i < size; i++){
+			word[i] = data.readByte();
+		}*/
+		data.read(word);
+		String output = new String(word,"UTF8");
 		return output;
 	}
 }
