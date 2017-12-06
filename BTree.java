@@ -29,6 +29,13 @@ public class BTree {
 	    source = null; 
 	} 
     }
+	
+	public long findRoot()throws IOException{
+		data.seek(8);
+		return data.readLong();
+	}
+
+
     
     public void insert(long key, long posn, long offset) throws IOException{
 	Node temp = readNode(posn);
@@ -139,7 +146,7 @@ public class BTree {
 }
 
 class Node{
-	private final int order;
+	private final int order = 7;
     long[] childArr; //Array of References
     long[] keyArr; //Array of Key Values
     long[] recordOffset; //Array of Offsets

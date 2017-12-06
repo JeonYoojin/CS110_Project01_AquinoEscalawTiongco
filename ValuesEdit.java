@@ -36,7 +36,7 @@ public class ValuesEdit{
 		//<DEBUG> System.out.println(entry);
 	}
 
-	public void updateEntry(int point, String entry) throws IOException{
+	public void updateEntry(long point, String entry) throws IOException{
 		byte[] word = entry.getBytes("UTF8");
 		data.seek(HEADER_SIZE+point*TOTAL_BYTE_SIZE);
 		data.writeShort(entry.length());
@@ -54,5 +54,9 @@ public class ValuesEdit{
 		data.read(word);
 		String output = new String(word,"UTF8");
 		return output;
+	}
+	
+	public long amtRecord(){
+		return numRecords;
 	}
 }

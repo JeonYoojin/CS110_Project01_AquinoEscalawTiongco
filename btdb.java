@@ -1,12 +1,9 @@
 import java.util.*;
 import java.io.*;
 
-
-
 public class btdb{
 
 	public static void main(String[] args) throws IOException{
-		
 		Scanner read = new Scanner(System.in);
 
 		BTree tree = new BTree(args[0]);
@@ -16,32 +13,38 @@ public class btdb{
 			System.out.print("> "); //the pointer thing for inputs
 			String[] input = read.nextLine().split("\\s"); // splits input by spaces???
 			if(input[0].equals("insert")){
-				int key = Integer.parseInt(input[1]);
-				if(tree.search(tree.root,key) == null){ //means it doesn't exist yet
+				long key = Long.parseLong(input[1]);
+				long amt = values.amtRecord();
+				if(tree.searchNodes(key,tree.findRoot()) == -1){ //means it doesn't exist yet
 					String word = "";
 				
 					for(int i = 2; i < input.length; i++){
 						word = word + input[i] + " ";
 					}
 					
+					
+					tree.insert(key,tree.findRoot(),amt);
 					values.insertEntry(word);
-					tree.insertDF(tree,key);
 					System.out.printf("< %d inserted.\n",key);
-					//testing purposes
-					System.out.println("key:" + input[1]);
-					System.out.println("value:"+ word);
 				}
 				else{
 					System.out.printf("ERROR: %d already exists.\n",key);
 				}
 				
 			} else if(input[0].equals("update")){
+				long key = Long.parseLong(input[1]);
+				String word = "";
+				for(int i = 2; i < input.length; i++){
+						word = word + input[i] + " ";
+				}
+				//long offset = tree.get
+				//if(
 				//find key in BTree
-				
 				//get value from key in BTree
 				//overwrite the value
 			} else if(input[0].equals("select")){
-				System.out.println(values.readEntry(Integer.parseInt(input[1])));
+				System.out.println(values.readEntry(Long.parseLong(input[1])));
+				long key = Long.parseLong(input[1]);
 				//find key in BTree
 				//get value from key in BTree
 				//return and display value
