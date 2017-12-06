@@ -1,0 +1,52 @@
+import java.util.*;
+import java.io.*;
+
+public class BTree{
+
+	private final int START_POINTER = 0;
+	private final int ORDER = 7;
+	private final int RECORD_SIZE = 3*ORDER - 1;
+	private RandomAccessFile data;
+	private long numRecords;
+	private long rootLocation;
+
+	class Node{
+		int[] keys;
+		Node[] children;
+
+		public Node(){
+			keys = new int[ORDER-1];
+			for(int i = 0; i < ORDER-1; i++)
+				keys[i] = -1;
+			for(int i = 0; i < ORDER; i++)
+				children[i] = null;
+		}
+	}
+
+	public BTree(String fileName) throws IOException{
+		File file = new File(fileName);
+		if(!file.exists()){
+			this.numRecords = 0;
+			this.rootLocation = -1;
+			this.data = new RandomAccessFile("Data.bt","rwd");	
+			this.data.seek(START_POINTER);
+			this.data.writeLong(numRecords);
+			this.data.writeLong(rootLocation);
+			//set first record with all -1's?
+		}else{
+			this.data = new RandomAccessFile(fileName, "rwd");	
+			this.data.seek(START_POINTER);
+			numRecords = this.data.readLong();
+			rootLocation = this.data.readLong();
+		} 
+	}
+
+	public void searchEntry(){
+		
+	}
+
+	public void insertEntry(){
+
+	}
+
+}
