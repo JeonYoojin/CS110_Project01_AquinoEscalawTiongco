@@ -1,5 +1,4 @@
-import java.io.*; 
-import java.util.*;
+import java.io.*; //I put this out of habit pls forgib
 
 //GGWP mga repa I have no idea what I'm doing how do you do Print method
 //UPDATE: I have finished print method, it's so jackass
@@ -9,9 +8,29 @@ public class BTree {
     BNode root; //B Tree Root Node
     long splitCnt; //data.bt
     long insertCnt; //Data.values
+	private final int START_POINTER = 0;
+	private final int RECORD_SIZE = 3*order - 1;
+	private RandomAccessFile data;
+	private long numRecords;
+	private long rootLocation;
     
     public BTree(String fileName) throws IOException{ //BTree Constructor
         root = new BNode(order,null);
+		File file = new File(fileName);
+		if(!file.exists()){
+			this.numRecords = 0;
+			this.rootLocation = -1;
+			this.data = new RandomAccessFile("Data.bt","rwd");	
+			this.data.seek(START_POINTER);
+			this.data.writeLong(numRecords);
+			this.data.writeLong(rootLocation);
+			//set first record with all -1's?
+		}else{
+			this.data = new RandomAccessFile(fileName, "rwd");	
+			this.data.seek(START_POINTER);
+			numRecords = this.data.readLong();
+			rootLocation = this.data.readLong();
+		} 
         //splitCnt = -1; insertCnt = -1;
     }
     
@@ -36,7 +55,7 @@ public class BTree {
     public void split(BNode x, int i, BNode y){ //Done when a Node overflows
         BNode z = new BNode(order, null); //additional Node for split
         z.leaf = y.leaf;//Sets leaf boolean as the same as y
-        z.count = order/2; //Updated size
+        z.count = order - 1; //Updated size
         for(int j = 0; j < order - 1; j++){
             z.key[j] = y.key[j + order]; //Copies end of Y to front of Z
         }
@@ -119,17 +138,14 @@ public class BTree {
         }
     }
     
-	//Mico, I changed this from void to boolean for the driver class
-    public boolean searchNode(BTree ents, int key){ //Prints out Node, check if node or key exists
+    public void searchNode(BTree ents, int key){ //Prints out Node
         BNode pholder = new BNode(order, null);
         pholder = search(ents.root, key);
         if(pholder == null){
-            //System.out.println("Specified Key not found.");
-			return false;
+            System.out.println("Specified Key not found.");
         }
         else{
-            //print(pholder);
-			return true;
+            print(pholder);
         }
     }
 }
